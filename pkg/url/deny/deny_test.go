@@ -6,42 +6,54 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tomMoulard/fail2ban/pkg/chain"
 	"github.com/tomMoulard/fail2ban/pkg/data"
 	"github.com/tomMoulard/fail2ban/pkg/fail2ban"
-	"github.com/tomMoulard/fail2ban/pkg/ipchecking"
-	"github.com/tomMoulard/fail2ban/pkg/rules"
-	"github.com/tomMoulard/fail2ban/pkg/utils/time"
 )
 
+// deny is a standalone part of a chain. we only need to test
+// if it returns the proper Chain.Status. Other aspects of functionality
+// (e.g. fail counting, bans) are tested separately.
 func TestDeny(t *testing.T) {
 	t.Parallel()
-
 	tests := []struct {
-		name             string
-		regs             []*regexp.Regexp
-		expectedStatus   *chain.Status
-		expectedIPViewed map[string]ipchecking.IPViewed
+		name         string
+		url          string
+		regs         []*regexp.Regexp
+		denyExpected bool
 	}{
 		{
-			name: "denied",
-			regs: []*regexp.Regexp{regexp.MustCompile(`^https://example.com/foo$`)},
-			expectedStatus: &chain.Status{
-				Return: true,
-			},
-			expectedIPViewed: map[string]ipchecking.IPViewed{
-				"192.0.2.1": {
-					Viewed: time.Now(),
-					Count:  1,
-					Denied: true,
-				},
-			},
+			name:         "non-matched request. Grant",
+			url:          "https://example.com/",
+			regs:         []*regexp.Regexp{regexp.MustCompile(`^https://example.com/foo$`)},
+			denyExpected: false,
 		},
 		{
-			name:             "not denied",
-			expectedIPViewed: map[string]ipchecking.IPViewed{},
+			name:         "matched request. Deny",
+			url:          "https://example.com/foo",
+			regs:         []*regexp.Regexp{regexp.MustCompile(`^https://example.com/foo$`)},
+			denyExpected: true,
+		},
+		{
+			name: "matched request. Deny. (multiple regex)",
+			url:  "https://example.com/bar",
+			regs: []*regexp.Regexp{
+				regexp.MustCompile(`^https://example.com/foo$`),
+				regexp.MustCompile(`^https://example.com/bar$`),
+				regexp.MustCompile(`^https://example.com/baz$`),
+			},
+			denyExpected: true,
+		},
+		{
+			name: "non-matched request. Grant. (multiple regex)",
+			url:  "https://example.com/banana",
+			regs: []*regexp.Regexp{
+				regexp.MustCompile(`^https://example.com/foo$`),
+				regexp.MustCompile(`^https://example.com/bar$`),
+				regexp.MustCompile(`^https://example.com/baz$`),
+			},
+			denyExpected: false,
 		},
 	}
 
@@ -49,27 +61,22 @@ func TestDeny(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			f2b := fail2ban.New(rules.RulesTransformed{})
-			d := New(test.regs, f2b)
+			d := New(test.regs, &fail2ban.Fail2BanDummy{}) // deny instance to test
+
+			req := httptest.NewRequest(http.MethodGet, test.url, nil)
 
 			recorder := &httptest.ResponseRecorder{}
-			req := httptest.NewRequest(http.MethodGet, "https://example.com/foo", nil)
-			req, err := data.ServeHTTP(recorder, req)
+			req, err := data.ServeHTTP(recorder, req) // populate the context data flag
 			require.NoError(t, err)
 
-			got, err := d.ServeHTTP(recorder, req)
-			require.NoError(t, err)
-			assert.Equal(t, test.expectedStatus, got)
-			require.Equal(t, len(test.expectedIPViewed), len(f2b.IPs))
+			resp, err := d.ServeHTTP(recorder, req)
 
-			// workaround for time.Now() not matching between expected and actual
-			for k, v := range test.expectedIPViewed {
-				assert.Contains(t, f2b.IPs, k)
-
-				// copy timestamp, as it will not match otherwise. Then compare
-				v.Viewed = f2b.IPs[k].Viewed
-				assert.Equal(t, v, f2b.IPs[k])
+			if resp == nil { // if we did not get a chain.Status object, populate a blank one.
+				resp = &chain.Status{}
 			}
+
+			require.NoError(t, err)
+			require.Equal(t, resp.Return, test.denyExpected)
 		})
 	}
 }

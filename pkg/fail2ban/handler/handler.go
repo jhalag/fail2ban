@@ -14,12 +14,11 @@ type handler struct {
 	f2b *fail2ban.Fail2Ban
 }
 
+// f2b Handler to check if an IP is already banned, denying if so.
 func New(f2b *fail2ban.Fail2Ban) *handler {
 	return &handler{f2b: f2b}
 }
 
-// ServeHTTP iterates over every headers to match the ones specified in the
-// configuration and return nothing if regexp failed.
 func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) (*chain.Status, error) {
 	data := data.GetData(req)
 	if data == nil {

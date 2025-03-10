@@ -11,11 +11,22 @@ import (
 	utime "github.com/tomMoulard/fail2ban/pkg/utils/time"
 )
 
+// interface that any f2b handler implements
+type Fail2Ban_interface interface {
+	// ShouldAllow check if the request should be allowed to proceed.
+	// Called when a request was DENIED or otherwise failed a check.
+	// increments the denied counter. Will return false if ban threshold has been reached.
+	ShouldAllow(remoteIP string) bool
+
+	// IsNotBanned Non-incrementing check to see if an IP is already banned.
+	IsNotBanned(remoteIP string) bool
+}
+
 // Fail2Ban is a fail2ban implementation.
 type Fail2Ban struct {
 	rules rules.RulesTransformed
 
-	MuIP sync.Mutex
+	muIP sync.Mutex
 	IPs  map[string]ipchecking.IPViewed
 }
 
@@ -27,11 +38,12 @@ func New(rules rules.RulesTransformed) *Fail2Ban {
 	}
 }
 
-// ShouldAllow check if the request should be allowed.
-// Called when a request was DENIED - increments the denied counter.
+// ShouldAllow check if the request should be allowed to proceed.
+// Called when a request was DENIED or otherwise failed a check.
+// increments the denied counter. Will return false if ban threshold has been reached.
 func (u *Fail2Ban) ShouldAllow(remoteIP string) bool {
-	u.MuIP.Lock()
-	defer u.MuIP.Unlock()
+	u.muIP.Lock()
+	defer u.muIP.Unlock()
 
 	ip, foundIP := u.IPs[remoteIP]
 
@@ -110,8 +122,8 @@ func (u *Fail2Ban) ShouldAllow(remoteIP string) bool {
 
 // IsNotBanned Non-incrementing check to see if an IP is already banned.
 func (u *Fail2Ban) IsNotBanned(remoteIP string) bool {
-	u.MuIP.Lock()
-	defer u.MuIP.Unlock()
+	u.muIP.Lock()
+	defer u.muIP.Unlock()
 
 	ip, foundIP := u.IPs[remoteIP]
 
