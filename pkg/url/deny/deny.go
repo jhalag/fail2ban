@@ -10,8 +10,6 @@ import (
 	"github.com/tomMoulard/fail2ban/pkg/chain"
 	"github.com/tomMoulard/fail2ban/pkg/data"
 	"github.com/tomMoulard/fail2ban/pkg/fail2ban"
-	"github.com/tomMoulard/fail2ban/pkg/ipchecking"
-	"github.com/tomMoulard/fail2ban/pkg/utils/time"
 )
 
 type deny struct {
@@ -35,18 +33,9 @@ func (d *deny) ServeHTTP(w http.ResponseWriter, r *http.Request) (*chain.Status,
 
 	fmt.Printf("data: %+v", data)
 
-	d.f2b.MuIP.Lock()
-	defer d.f2b.MuIP.Unlock()
-
-	ip := d.f2b.IPs[data.RemoteIP]
-
 	for _, reg := range d.regs {
 		if reg.MatchString(r.URL.String()) {
-			d.f2b.IPs[data.RemoteIP] = ipchecking.IPViewed{
-				Viewed: time.Now(),
-				Count:  ip.Count + 1,
-				Denied: true,
-			}
+			d.f2b.ShouldAllow(data.RemoteIP) //increment failed counter
 
 			fmt.Printf("Url (%q) was matched by regexpBan: %q", r.URL.String(), reg.String())
 
