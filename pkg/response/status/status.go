@@ -13,10 +13,10 @@ import (
 type status struct {
 	next       http.Handler
 	codeRanges HTTPCodeRanges
-	f2b        *fail2ban.Fail2Ban
+	f2b        fail2ban.Fail2Ban_interface
 }
 
-func New(next http.Handler, statusCode string, f2b *fail2ban.Fail2Ban) (*status, error) {
+func New(next http.Handler, statusCode string, f2b fail2ban.Fail2Ban_interface) (*status, error) {
 	codeRanges, err := NewHTTPCodeRanges(strings.Split(statusCode, ","))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP code ranges: %w", err)

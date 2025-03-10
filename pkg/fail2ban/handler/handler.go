@@ -11,11 +11,11 @@ import (
 )
 
 type handler struct {
-	f2b *fail2ban.Fail2Ban
+	f2b fail2ban.Fail2Ban_interface
 }
 
 // f2b Handler to check if an IP is already banned, denying if so.
-func New(f2b *fail2ban.Fail2Ban) *handler {
+func New(f2b fail2ban.Fail2Ban_interface) *handler {
 	return &handler{f2b: f2b}
 }
 
