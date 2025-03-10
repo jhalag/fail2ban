@@ -15,10 +15,10 @@ import (
 type deny struct {
 	regs []*regexp.Regexp
 
-	f2b *fail2ban.Fail2Ban
+	f2b fail2ban.Fail2Ban_interface
 }
 
-func New(regs []*regexp.Regexp, f2b *fail2ban.Fail2Ban) *deny {
+func New(regs []*regexp.Regexp, f2b fail2ban.Fail2Ban_interface) *deny {
 	return &deny{
 		regs: regs,
 		f2b:  f2b,
