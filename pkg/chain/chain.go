@@ -16,6 +16,9 @@ type Status struct {
 	// Break is a flag that tells the chain to break. If Break is true, the chain
 	// will stop (e.g., the ip is in the allowlist)
 	Break bool
+	// InternalError - A fatal error has happened.
+	// Break out of the chain and return an error code.
+	InternalError bool
 }
 
 // ChainHandler is a handler that can be chained.
@@ -71,7 +74,11 @@ func (c *chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if s.Return {
 			w.WriteHeader(http.StatusForbidden)
+			return
+		}
 
+		if s.InternalError {
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
