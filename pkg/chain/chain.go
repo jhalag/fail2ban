@@ -2,10 +2,13 @@
 package chain
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/tomMoulard/fail2ban/pkg/data"
+	"github.com/tomMoulard/fail2ban/pkg/ipchecking"
 )
 
 // Status is a status that can be returned by a handler.
@@ -27,12 +30,20 @@ type ChainHandler interface {
 type Chain interface {
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
 	WithStatus(status http.Handler)
+	WithTrustedProxies(tp TrustedProxies) error
+}
+
+type TrustedProxies struct {
+	IPs       []string          `yaml:"ips"`     // list of IPs to accept trusted headers from
+	NetIPS    ipchecking.NetIPs `yaml:"-"`       // parsed IPs / CIDRs of trusted hosts
+	IPHeaders []string          `yaml:"headers"` // list of headers to check (in order) for real IP. First populated header is used.
 }
 
 type chain struct {
-	handlers []ChainHandler
-	final    http.Handler
-	status   *http.Handler
+	handlers       []ChainHandler
+	final          http.Handler
+	status         *http.Handler
+	trustedProxies TrustedProxies
 }
 
 // New creates a new chain.
@@ -48,11 +59,35 @@ func (c *chain) WithStatus(status http.Handler) {
 	c.status = &status
 }
 
+// WithTrustedProxies sets which IPs are allowed to set the headers.
+//
+//nolint:gofumpt //see https://github.com/golangci/golangci-lint/issues/1510 - gofumpt and wsl cannot agree how to format this function.
+func (c *chain) WithTrustedProxies(tp TrustedProxies) error {
+	var err error
+
+	c.trustedProxies.IPHeaders = tp.IPHeaders
+	c.trustedProxies.IPs = tp.IPHeaders
+	c.trustedProxies.NetIPS, err = ipchecking.ParseNetIPs(tp.IPs)
+
+	if err != nil {
+		return fmt.Errorf("failed to parse trusted proxies: %w", err)
+	}
+
+	return nil
+}
+
 // ServeHTTP chains the handlers together, and calls the final handler at the end.
 func (c *chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	r, err := data.ServeHTTP(w, r)
+	remoteIP, err := c.getRemoteIP(r)
 	if err != nil {
-		log.Printf("data.ServeHTTP error: %v", err)
+		log.Printf("chain.getRemoteIP error: %v", err)
+
+		return
+	}
+
+	r, err = data.SetData(r, &remoteIP)
+	if err != nil {
+		log.Printf("data.SetData error: %v", err)
 
 		return
 	}
@@ -87,4 +122,33 @@ func (c *chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c.final.ServeHTTP(w, r)
+}
+
+// getRemoteIP attempt to parse remote IP
+// If TrustedProxies have been configured, that will be taken into account.
+func (c *chain) getRemoteIP(r *http.Request) (data.Data, error) {
+	var ret data.Data
+
+	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		err = fmt.Errorf("failed to split remote address %q: %w", r.RemoteAddr, err)
+
+		return ret, err
+	}
+
+	// is there a trusted header present?
+	for _, th := range c.trustedProxies.IPHeaders {
+		headerIP := r.Header.Get(th)
+
+		if headerIP != "" && c.trustedProxies.NetIPS.Contains(remoteIP) { // target header is present, and IP is trusted
+			ret.ViaTrustedProxy = remoteIP // remote IP was a trusted proxy
+			ret.RemoteIP = headerIP        // and IP is defined by the header
+
+			return ret, nil
+		}
+	}
+
+	ret.RemoteIP = remoteIP
+
+	return ret, nil
 }

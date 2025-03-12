@@ -87,6 +87,19 @@ configuration.
 Please note that Fail2ban logs will _only_ be visible when Traefik's log level
 is set to `DEBUG`.
 
+### Trusted Proxies
+If behind a reverse proxy, trusted proxy IPs can be specified, along with the header(s) providing real IP.
+Headers are checked in order, with the first valid header used.
+```yml
+testData:
+  trustedproxies:
+    ips:
+      - "173.245.48.0/20"
+    headers:
+      - "CF-Connecting-IP"
+```
+
+
 ## Fail2ban
 We plan to use all default fail2ban configuration but at this time only a
 few features are implemented:

@@ -40,7 +40,7 @@ func TestDeny(t *testing.T) {
 
 			recorder := &httptest.ResponseRecorder{}
 			req := httptest.NewRequest(http.MethodGet, "https://example.com/foo", nil)
-			req, err = data.ServeHTTP(recorder, req)
+			req, err = data.SetData(req, &data.Data{RemoteIP: "192.0.2.1"})
 			require.NoError(t, err)
 
 			got, err := d.ServeHTTP(recorder, req)
