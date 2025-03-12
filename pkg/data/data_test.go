@@ -18,21 +18,9 @@ func TestData(t *testing.T) {
 		expectedData *Data
 	}{
 		{
-			name: "single IP 1",
+			name: "single IP",
 			expectedData: &Data{
 				RemoteIP: "192.0.2.1",
-			},
-		},
-		{
-			name: "single IP 2",
-			expectedData: &Data{
-				RemoteIP: "192.0.2.2",
-			},
-		},
-		{
-			name: "single IP 3",
-			expectedData: &Data{
-				RemoteIP: "192.0.2.3",
 			},
 		},
 		{
@@ -49,7 +37,6 @@ func TestData(t *testing.T) {
 			t.Parallel()
 
 			req := httptest.NewRequest(http.MethodGet, "https://example.com/foo", nil)
-			req = req.Clone(context.WithoutCancel(context.Background()))
 			req, err := SetData(req, test.expectedData)
 			require.NoError(t, err)
 
