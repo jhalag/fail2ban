@@ -32,9 +32,10 @@ type List struct {
 
 // Config struct.
 type Config struct {
-	Denylist  List        `yaml:"denylist"`
-	Allowlist List        `yaml:"allowlist"`
-	Rules     rules.Rules `yaml:"port"`
+	Denylist       List                 `yaml:"denylist"`
+	Allowlist      List                 `yaml:"allowlist"`
+	Rules          rules.Rules          `yaml:"port"`
+	TrustedProxies chain.TrustedProxies `yaml:"trustedproxies"`
 
 	// deprecated
 	Blacklist List `yaml:"blacklist"`
@@ -150,6 +151,11 @@ func New(_ context.Context, next http.Handler, config *Config, _ string) (http.H
 		}
 
 		c.WithStatus(statusCodeHandler)
+	}
+
+	err = c.WithTrustedProxies(config.TrustedProxies)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse trusted IPs: %w", err)
 	}
 
 	return c, nil

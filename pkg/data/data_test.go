@@ -18,9 +18,28 @@ func TestData(t *testing.T) {
 		expectedData *Data
 	}{
 		{
-			name: "allowed",
+			name: "single IP 1",
 			expectedData: &Data{
 				RemoteIP: "192.0.2.1",
+			},
+		},
+		{
+			name: "single IP 2",
+			expectedData: &Data{
+				RemoteIP: "192.0.2.2",
+			},
+		},
+		{
+			name: "single IP 3",
+			expectedData: &Data{
+				RemoteIP: "192.0.2.3",
+			},
+		},
+		{
+			name: "IP via proxy",
+			expectedData: &Data{
+				RemoteIP:        "172.0.2.1",
+				ViaTrustedProxy: "10.10.0.1",
 			},
 		},
 	}
@@ -29,9 +48,9 @@ func TestData(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			recorder := &httptest.ResponseRecorder{}
 			req := httptest.NewRequest(http.MethodGet, "https://example.com/foo", nil)
-			req, err := ServeHTTP(recorder, req)
+			req = req.Clone(context.WithoutCancel(context.Background()))
+			req, err := SetData(req, test.expectedData)
 			require.NoError(t, err)
 
 			got := GetData(req)
@@ -54,7 +73,9 @@ func TestGetData_InvalidData(t *testing.T) {
 				t.Helper()
 
 				req := httptest.NewRequest(http.MethodGet, "https://example.com/foo", nil)
-				req, err := ServeHTTP(nil, req)
+				req, err := SetData(req, &Data{
+					RemoteIP: "192.0.2.1",
+				})
 				require.NoError(t, err)
 
 				return req
