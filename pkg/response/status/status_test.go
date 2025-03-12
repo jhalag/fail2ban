@@ -118,13 +118,12 @@ func TestStatus(t *testing.T) {
 			d, err := New(next, test.codeRanges, f2b)
 			require.NoError(t, err)
 
-			recorder := &httptest.ResponseRecorder{}
 			req := httptest.NewRequest(http.MethodGet, "https://example.com/foo", nil)
-			req, err = data.ServeHTTP(recorder, req)
+			req, err = data.SetData(req, &data.Data{RemoteIP: "192.0.2.1"})
 			require.NoError(t, err)
 
 			var b bytes.Buffer
-			recorder = &httptest.ResponseRecorder{Body: &b}
+			recorder := &httptest.ResponseRecorder{Body: &b}
 			d.ServeHTTP(recorder, req)
 			t.Logf("recorder: %+v", recorder)
 
