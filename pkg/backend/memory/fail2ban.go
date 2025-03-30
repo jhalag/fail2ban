@@ -1,5 +1,6 @@
-// Package fail2ban provides a fail2ban implementation.
-package fail2ban
+// Package memory provides a fail2ban implementation.
+// in-memory only, contents are stateful & lost on restart
+package memory
 
 import (
 	"fmt"
@@ -10,17 +11,6 @@ import (
 	"github.com/tomMoulard/fail2ban/pkg/rules"
 	utime "github.com/tomMoulard/fail2ban/pkg/utils/time"
 )
-
-// interface that any f2b handler implements
-type Fail2Ban_interface interface {
-	// ShouldAllow check if the request should be allowed to proceed.
-	// Called when a request was DENIED or otherwise failed a check.
-	// increments the denied counter. Will return false if ban threshold has been reached.
-	ShouldAllow(remoteIP string) bool
-
-	// IsNotBanned Non-incrementing check to see if an IP is already banned.
-	IsNotBanned(remoteIP string) bool
-}
 
 // Fail2Ban is a fail2ban implementation.
 type Fail2Ban struct {

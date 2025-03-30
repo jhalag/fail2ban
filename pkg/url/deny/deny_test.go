@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tomMoulard/fail2ban/pkg/chain"
 	"github.com/tomMoulard/fail2ban/pkg/data"
-	"github.com/tomMoulard/fail2ban/pkg/fail2ban"
+	"github.com/tomMoulard/fail2ban/pkg/handler"
 )
 
 // deny is a standalone part of a chain. we only need to test
@@ -17,6 +17,7 @@ import (
 // (e.g. fail counting, bans) are tested separately.
 func TestDeny(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name         string
 		url          string
@@ -61,7 +62,7 @@ func TestDeny(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			d := New(test.regs, &fail2ban.Fail2BanDummy{}) // deny instance to test
+			d := New(test.regs, &handler.Fail2BanDummy{}) // deny instance to test
 
 			req := httptest.NewRequest(http.MethodGet, test.url, nil)
 
@@ -76,7 +77,7 @@ func TestDeny(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, resp.Return, test.denyExpected)
+			require.Equal(t, test.denyExpected, resp.Return)
 		})
 	}
 }

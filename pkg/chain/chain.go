@@ -86,5 +86,6 @@ func (c *chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// status.ServeHTTP() calls final() inside it's routine. If there is no status handler, we need to call it here instead.
 	c.final.ServeHTTP(w, r)
 }

@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tomMoulard/fail2ban/pkg/backend/memory"
 	"github.com/tomMoulard/fail2ban/pkg/data"
-	"github.com/tomMoulard/fail2ban/pkg/fail2ban"
 	"github.com/tomMoulard/fail2ban/pkg/ipchecking"
 	"github.com/tomMoulard/fail2ban/pkg/rules"
 	utime "github.com/tomMoulard/fail2ban/pkg/utils/time"
@@ -109,7 +109,7 @@ func TestStatus(t *testing.T) {
 				assert.NoError(t, err)
 			})
 
-			f2b := fail2ban.New(rules.RulesTransformed{
+			f2b := memory.New(rules.RulesTransformed{
 				MaxRetry: 1,
 				Findtime: 300 * time.Second,
 				Bantime:  300 * time.Second,

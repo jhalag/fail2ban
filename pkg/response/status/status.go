@@ -7,16 +7,16 @@ import (
 	"strings"
 
 	"github.com/tomMoulard/fail2ban/pkg/data"
-	"github.com/tomMoulard/fail2ban/pkg/fail2ban"
+	"github.com/tomMoulard/fail2ban/pkg/handler"
 )
 
 type status struct {
 	next       http.Handler
 	codeRanges HTTPCodeRanges
-	f2b        fail2ban.Fail2Ban_interface
+	f2b        handler.Fail2BanBackend
 }
 
-func New(next http.Handler, statusCode string, f2b fail2ban.Fail2Ban_interface) (*status, error) {
+func New(next http.Handler, statusCode string, f2b handler.Fail2BanBackend) (*status, error) {
 	codeRanges, err := NewHTTPCodeRanges(strings.Split(statusCode, ","))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP code ranges: %w", err)

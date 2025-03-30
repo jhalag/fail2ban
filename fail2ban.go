@@ -9,9 +9,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/tomMoulard/fail2ban/pkg/backend/memory"
 	"github.com/tomMoulard/fail2ban/pkg/chain"
-	"github.com/tomMoulard/fail2ban/pkg/fail2ban"
-	f2bHandler "github.com/tomMoulard/fail2ban/pkg/fail2ban/handler"
+	"github.com/tomMoulard/fail2ban/pkg/handler"
 	lAllow "github.com/tomMoulard/fail2ban/pkg/list/allow"
 	lDeny "github.com/tomMoulard/fail2ban/pkg/list/deny"
 	"github.com/tomMoulard/fail2ban/pkg/response/status"
@@ -140,14 +140,17 @@ func New(_ context.Context, next http.Handler, config *Config, _ string) (http.H
 		return nil, fmt.Errorf("error when Transforming rules: %w", err)
 	}
 
-	var f2b fail2ban.Fail2Ban_interface
-	if config.Backend.Type == "" || config.Backend.Type == "internal" {
-		f2b = fail2ban.New(rules)
-	} else if config.Backend.Type == "redis" {
-		//TODO
-	} else {
-		log.Printf("Unknown backend handler specification [%s], defaulting to internal", config.Backend.Type)
-		f2b = fail2ban.New(rules)
+	var f2b handler.Fail2BanBackend
+
+	switch config.Backend.Type {
+	case "memory", "":
+		f2b = memory.New(rules)
+	case "redis":
+		// TODO
+	default:
+		log.Printf("Unknown backend handler specification [%s], defaulting to memory", config.Backend.Type)
+
+		f2b = memory.New(rules)
 	}
 
 	log.Println("Plugin: FailToBan is up and running")
@@ -158,7 +161,7 @@ func New(_ context.Context, next http.Handler, config *Config, _ string) (http.H
 		allowHandler,
 		uDeny.New(rules.URLRegexpBan, f2b),
 		uAllow.New(rules.URLRegexpAllow),
-		f2bHandler.New(f2b),
+		handler.New(f2b),
 	)
 
 	if rules.StatusCode != "" {

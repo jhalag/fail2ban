@@ -1,6 +1,7 @@
-package fail2ban
+package handler
 
-// dummy handler implementing the fail2ban interace for tests.
+// Fail2BanDummy dummy handler implementing the fail2ban interface for tests.
+// Will grant all requests and never ban.
 type Fail2BanDummy struct {
 }
 
