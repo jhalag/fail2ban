@@ -31,7 +31,7 @@ func New(rules rules.RulesTransformed) *Fail2Ban {
 // ShouldAllow check if the request should be allowed to proceed.
 // Called when a request was DENIED or otherwise failed a check.
 // increments the denied counter. Will return false if ban threshold has been reached.
-func (u *Fail2Ban) ShouldAllow(remoteIP string) bool {
+func (u *Fail2Ban) ShouldAllow(remoteIP string) (bool, error) {
 	u.muIP.Lock()
 	defer u.muIP.Unlock()
 
@@ -46,7 +46,7 @@ func (u *Fail2Ban) ShouldAllow(remoteIP string) bool {
 
 		fmt.Printf("welcome %q", remoteIP)
 
-		return true
+		return true, nil
 	}
 
 	if ip.Denied {
@@ -60,7 +60,7 @@ func (u *Fail2Ban) ShouldAllow(remoteIP string) bool {
 			fmt.Printf("%q is still banned since %q, %d request",
 				remoteIP, ip.Viewed.Format(time.RFC3339), ip.Count+1)
 
-			return false
+			return false, nil
 		}
 
 		u.IPs[remoteIP] = ipchecking.IPViewed{
@@ -71,7 +71,7 @@ func (u *Fail2Ban) ShouldAllow(remoteIP string) bool {
 
 		fmt.Println(remoteIP + " is no longer banned")
 
-		return true
+		return true, nil
 	}
 
 	if utime.Now().Before(ip.Viewed.Add(u.rules.Findtime)) {
@@ -85,7 +85,7 @@ func (u *Fail2Ban) ShouldAllow(remoteIP string) bool {
 			fmt.Printf("%q is banned for %d>=%d request",
 				remoteIP, ip.Count+1, u.rules.MaxRetry)
 
-			return false
+			return false, nil
 		}
 
 		u.IPs[remoteIP] = ipchecking.IPViewed{
@@ -96,7 +96,7 @@ func (u *Fail2Ban) ShouldAllow(remoteIP string) bool {
 
 		fmt.Printf("welcome back %q for the %d time", remoteIP, ip.Count+1)
 
-		return true
+		return true, nil
 	}
 
 	u.IPs[remoteIP] = ipchecking.IPViewed{
@@ -107,11 +107,11 @@ func (u *Fail2Ban) ShouldAllow(remoteIP string) bool {
 
 	fmt.Printf("welcome back %q", remoteIP)
 
-	return true
+	return true, nil
 }
 
 // IsNotBanned Non-incrementing check to see if an IP is already banned.
-func (u *Fail2Ban) IsNotBanned(remoteIP string) bool {
+func (u *Fail2Ban) IsNotBanned(remoteIP string) (bool, error) {
 	u.muIP.Lock()
 	defer u.muIP.Unlock()
 
@@ -126,7 +126,7 @@ func (u *Fail2Ban) IsNotBanned(remoteIP string) bool {
 
 		fmt.Printf("welcome %q", remoteIP)
 
-		return true
+		return true, nil
 	}
 
 	if ip.Denied {
@@ -140,7 +140,7 @@ func (u *Fail2Ban) IsNotBanned(remoteIP string) bool {
 			fmt.Printf("%q is still banned since %q, %d request",
 				remoteIP, ip.Viewed.Format(time.RFC3339), ip.Count+1)
 
-			return false
+			return false, nil
 		}
 
 		u.IPs[remoteIP] = ipchecking.IPViewed{
@@ -151,10 +151,10 @@ func (u *Fail2Ban) IsNotBanned(remoteIP string) bool {
 
 		fmt.Println(remoteIP + " is no longer banned")
 
-		return true
+		return true, nil
 	}
 
 	fmt.Printf("welcome back %q", remoteIP)
 
-	return true
+	return true, nil
 }

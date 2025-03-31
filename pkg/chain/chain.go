@@ -58,11 +58,12 @@ func (c *chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, handler := range c.handlers {
-		s, err := handler.ServeHTTP(w, r)
+		s, err := handler.ServeHTTP(w, r) // this may bear reviewing. Each handler is checking rules, not writing responses. Perhaps just pass it the request?
 		if err != nil {
 			log.Printf("handler.ServeHTTP error: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
 
-			break
+			return
 		}
 
 		if s == nil {

@@ -113,7 +113,7 @@ func TestShouldAllow(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := test.cfg.ShouldAllow(test.remoteIP)
+			got, _ := test.cfg.ShouldAllow(test.remoteIP)
 			test.expect(t, got)
 		})
 	}

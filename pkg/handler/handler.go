@@ -15,10 +15,10 @@ type Fail2BanBackend interface {
 	// ShouldAllow check if the request should be allowed to proceed.
 	// Called when a request was DENIED or otherwise failed a check.
 	// increments the denied counter. Will return false if ban threshold has been reached.
-	ShouldAllow(remoteIP string) bool
+	ShouldAllow(remoteIP string) (bool, error)
 
 	// IsNotBanned Non-incrementing check to see if an IP is already banned.
-	IsNotBanned(remoteIP string) bool
+	IsNotBanned(remoteIP string) (bool, error)
 }
 
 type handler struct {
@@ -36,7 +36,13 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) (*chain.S
 		return nil, errors.New("failed to get data from request context")
 	}
 
-	if !h.f2b.IsNotBanned(data.RemoteIP) {
+	inb, err := h.f2b.IsNotBanned(data.RemoteIP)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !inb {
 		return &chain.Status{Return: true}, nil
 	}
 

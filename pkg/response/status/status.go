@@ -41,6 +41,8 @@ func (s *status) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("data: %+v", data)
 
+	var err error
+
 	catcher := newCodeCatcher(w, s.codeRanges)
 	s.next.ServeHTTP(catcher, r)
 
@@ -52,7 +54,14 @@ func (s *status) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	catcher.allowedRequest = s.f2b.ShouldAllow(data.RemoteIP)
+	catcher.allowedRequest, err = s.f2b.ShouldAllow(data.RemoteIP)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Printf("error returned from f2b handler: %v", err)
+
+		return
+	}
+
 	if !catcher.allowedRequest {
 		fmt.Printf("IP %s is banned", data.RemoteIP)
 		w.WriteHeader(http.StatusForbidden)

@@ -86,7 +86,7 @@ func TestChain(t *testing.T) {
 		},
 		{
 			name:         "error",
-			finalHandler: &mockHandler{expectedCalled: 1},
+			finalHandler: &mockHandler{expectedCalled: 0},
 			handlers: []ChainHandler{&mockChainHandler{
 				mockHandler: mockHandler{
 					err:            errors.New("error"),

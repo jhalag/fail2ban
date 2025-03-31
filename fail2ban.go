@@ -9,7 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tomMoulard/fail2ban/pkg/backend/memory"
+	f2bmemory "github.com/tomMoulard/fail2ban/pkg/backend/memory"
+	f2bredis "github.com/tomMoulard/fail2ban/pkg/backend/redis"
 	"github.com/tomMoulard/fail2ban/pkg/chain"
 	"github.com/tomMoulard/fail2ban/pkg/handler"
 	lAllow "github.com/tomMoulard/fail2ban/pkg/list/allow"
@@ -31,12 +32,8 @@ type List struct {
 }
 
 type Backend struct {
-	Type  string `yaml:"type"`
-	Redis struct {
-		Host     string `yaml:"host"`
-		Password string `yaml:"password"`
-		DB       int    `yaml:"db"`
-	} `yaml:"redis"`
+	Type  string                  `yaml:"type"`
+	Redis f2bredis.F2bRedisConfig `yaml:"redis"`
 }
 
 // Config struct.
@@ -144,13 +141,13 @@ func New(_ context.Context, next http.Handler, config *Config, _ string) (http.H
 
 	switch config.Backend.Type {
 	case "memory", "":
-		f2b = memory.New(rules)
+		f2b = f2bmemory.New(rules)
 	case "redis":
-		// TODO
+		f2b = f2bredis.New(rules, config.Backend.Redis)
 	default:
 		log.Printf("Unknown backend handler specification [%s], defaulting to memory", config.Backend.Type)
 
-		f2b = memory.New(rules)
+		f2b = f2bmemory.New(rules)
 	}
 
 	log.Println("Plugin: FailToBan is up and running")
