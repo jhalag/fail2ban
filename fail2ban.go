@@ -30,11 +30,21 @@ type List struct {
 	Files []string
 }
 
+type Backend struct {
+	Type  string `yaml:"type"`
+	Redis struct {
+		Host     string `yaml:"host"`
+		Password string `yaml:"password"`
+		DB       int    `yaml:"db"`
+	} `yaml:"redis"`
+}
+
 // Config struct.
 type Config struct {
 	Denylist  List        `yaml:"denylist"`
 	Allowlist List        `yaml:"allowlist"`
 	Rules     rules.Rules `yaml:"port"`
+	Backend   Backend     `yaml:"backend"`
 
 	// deprecated
 	Blacklist List `yaml:"blacklist"`
@@ -89,7 +99,7 @@ func New(_ context.Context, next http.Handler, config *Config, _ string) (http.H
 	}
 
 	if len(config.Whitelist.IP) > 0 || len(config.Whitelist.Files) > 0 {
-		log.Println("Plugin: FailToBan: 'whitelist' is deprecated, please use 'denylist' instead")
+		log.Println("Plugin: FailToBan: 'whitelist' is deprecated, please use 'allowlist' instead")
 
 		whiteips, err := ImportIP(config.Whitelist)
 		if err != nil {
@@ -130,9 +140,17 @@ func New(_ context.Context, next http.Handler, config *Config, _ string) (http.H
 		return nil, fmt.Errorf("error when Transforming rules: %w", err)
 	}
 
-	log.Println("Plugin: FailToBan is up and running")
+	var f2b fail2ban.Fail2Ban_interface
+	if config.Backend.Type == "" || config.Backend.Type == "internal" {
+		f2b = fail2ban.New(rules)
+	} else if config.Backend.Type == "redis" {
+		//TODO
+	} else {
+		log.Printf("Unknown backend handler specification [%s], defaulting to internal", config.Backend.Type)
+		f2b = fail2ban.New(rules)
+	}
 
-	f2b := fail2ban.New(rules)
+	log.Println("Plugin: FailToBan is up and running")
 
 	c := chain.New(
 		next,
