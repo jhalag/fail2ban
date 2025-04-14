@@ -95,7 +95,7 @@ testData:
   trustedproxies:
     ips:
       - "173.245.48.0/20"
-    headers:
+    ipheaders:
       - "CF-Connecting-IP"
 ```
 

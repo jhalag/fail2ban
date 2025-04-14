@@ -34,9 +34,9 @@ type Chain interface {
 }
 
 type TrustedProxies struct {
-	IPs       []string          `yaml:"ips"`     // list of IPs to accept trusted headers from
-	NetIPS    ipchecking.NetIPs `yaml:"-"`       // parsed IPs / CIDRs of trusted hosts
-	IPHeaders []string          `yaml:"headers"` // list of headers to check (in order) for real IP. First populated header is used.
+	IPs       []string          `yaml:"ips"`       // list of IPs to accept trusted headers from
+	NetIPS    ipchecking.NetIPs `yaml:"-"`         // parsed IPs / CIDRs of trusted hosts
+	IPHeaders []string          `yaml:"ipheaders"` // list of headers to check (in order) for real IP. First populated header is used.
 }
 
 type chain struct {
